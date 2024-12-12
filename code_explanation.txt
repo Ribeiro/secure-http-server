@@ -1,0 +1,77 @@
+The provided code implements a secure HTTPS server in Rust using several libraries such as `hyper`, `rustls`, `tokio`, `tracing`, and others to handle TLS, HTTP requests, and asynchronous logging. Let's go over each part in detail:
+
+### 1. **Library Imports**
+The code uses various Rust libraries, including:
+
+- **`std::sync::Arc`**: A smart pointer for shared ownership of immutable data across threads. Here, it is used to share the TLS configuration.
+- **`hyper::service::{service_fn}`**: Used to create an HTTP request handler.
+- **`hyper::{Body, Request, Response}`**: Hyper libraries for handling the body, request, and response of HTTP.
+- **`rustls::{Certificate, PrivateKey, ServerConfig}`**: `rustls` is a TLS protocol implementation. These structures are used to load and configure the certificates and private keys.
+- **`tokio::fs::File`** and **`tokio::io::AsyncReadExt`**: Tokio libraries for asynchronous file reading.
+- **`dotenv::dotenv` and `std::env`**: Used to load environment variables from a `.env` file.
+- **`tracing::{info, error}`** and **`tracing_subscriber`**: Tools for logging and event tracing.
+- **`tokio_rustls::TlsAcceptor`** and **`tokio_rustls::rustls`**: Used to configure and accept TLS connections asynchronously.
+
+### 2. **Function `load_certs_and_keys`**
+This function loads the certificates and private keys from files to configure the TLS server.
+
+- **Opening certificate and key files**: 
+  - The certificate file is read and converted into the `Certificate` type using `rustls_pemfile::certs`.
+  - The key file is read and converted into the `PrivateKey` type using `rustls_pemfile::pkcs8_private_keys`.
+- **Creating the `ServerConfig`**: 
+  - The TLS configuration is created using the certificates and private key, applying default security options.
+  - Client authentication is disabled using `.with_no_client_auth()`.
+  
+If there is an error loading or configuring the certificates, it returns an error.
+
+### 3. **Function `handle_request`**
+This function defines how HTTP requests should be processed.
+
+- **Simple routing**: 
+  - If the URI is `/`, it responds with a simple greeting message.
+  - If the URI is `/saudacao`, it responds with a specific message.
+  - For any other route, it returns a 404 error.
+
+This function is used to respond to HTTP requests within the secure server.
+
+### 4. **Main Function (`main`)**
+The `main` function is the entry point of the server.
+
+- **Log initialization**: 
+  - `tracing_subscriber::fmt().init()` sets up tracing to display logs in the terminal.
+  - `dotenv().ok()` loads environment variables from the `.env` file.
+  
+- **Reading environment variables**:
+  - The `CERT_PATH`, `KEY_PATH`, `SERVER_ADDRESS`, and `SERVER_PORT` variables are read from the environment to configure the certificate paths, server address, and port.
+  
+- **Loading certificates**:
+  - The `load_certs_and_keys` function is called to load the certificates and private key.
+  - The TLS configuration is stored in an `Arc` to be shared safely across threads.
+
+- **Server configuration**:
+  - The server is configured to listen for connections on the `SocketAddr` defined from the address and port.
+  - `TcpListener::bind(&addr).await?` creates a TCP listener to accept connections.
+  - A `TlsAcceptor` is configured using the loaded certificates.
+
+- **Connection acceptance loop**:
+  - The server enters a loop to accept TCP connections. For each connection, it attempts to establish a TLS connection using the `TlsAcceptor`.
+  - For successful TLS connections, it creates an HTTP service (`service_fn(handle_request)`) and uses `hyper::server::conn::Http::new().serve_connection(tls_stream, service)` to process the request.
+  - If the connection fails, an error is logged.
+
+### 5. **Asynchronous Execution with `tokio`**
+- The main function is annotated with `#[tokio::main]`, making it asynchronous and running the `tokio` runtime.
+- The server is executed within a `tokio::spawn` to allow it to run asynchronously without blocking the main thread.
+
+### 6. **Security and Configuration Aspects**
+- **TLS (Transport Layer Security)**: Communication is secured with the TLS protocol, using SSL certificates to encrypt data exchange.
+- **Certificate and Key Files**: The code expects the certificate (`cert.pem`) and private key (`key.pem`) files to be found at the specified paths or from environment variables.
+
+### 7. **Logging of Information and Errors**
+- The code uses `tracing` to log information and errors. This is useful for monitoring the server and debugging issues such as connection failures and configuration errors.
+
+### 8. **Other Details**
+- **Use of `Arc`**: `Arc` is used to ensure that the TLS `ServerConfig` can be safely shared across multiple asynchronous tasks.
+- **Use of `service_fn`**: `service_fn` is a simple and functional way to create HTTP services in `hyper`, which is used to define how HTTP requests are processed.
+
+### Summary
+This code sets up a secure HTTPS server in Rust using `hyper` to handle HTTP requests and `rustls` to manage the TLS security. It loads certificates and private keys from files, accepts TCP connections, upgrades them to secure TLS connections, and processes HTTP requests asynchronously. The server configuration and request processing are logged using the `tracing` library.

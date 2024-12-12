@@ -1,0 +1,16 @@
+[package]
+name = "secure-http-server"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+tokio = { version = "1", features = ["full"] }
+hyper = { version = "0.14", features = ["full"] }
+hyper-rustls = "0.23"
+rustls = "0.21"
+rustls-pemfile = "1.0"
+dotenv = "0.15"
+tracing = "0.1"
+tracing-subscriber = "0.3"
+tokio-rustls = "0.23"
+tokio-stream = { version = "0.1", features = ["net"] }
